@@ -35,13 +35,18 @@ async function run() {
       if (email) {
         query.senderEmail = email;
       }
-      const cursor = parcelsCollection.find(query);
+      const options = {
+        sort: { createAt: -1 },
+      };
+      const cursor = parcelsCollection.find(query, options);
       const result = await cursor.toArray();
       res.send(result);
     });
 
     app.post("/parcels", async (req, res) => {
       const parcel = req.body;
+      //parcel create time
+      parcel.createAt = new Date();
       const result = await parcelsCollection.insertOne(parcel);
       res.send(result);
     });
