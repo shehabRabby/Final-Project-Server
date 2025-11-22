@@ -139,7 +139,18 @@ async function run() {
       const sessionId = req.query.session_id;
       // console.log("Session Id: ", sessionId);
       const session = await stripe.checkout.sessions.retrieve(sessionId);
-      console.log("Session Retrieve: ", session);
+      // console.log("Session Retrieve: ", session);
+
+      const transactionId = session.payment_intent;
+      const query = { transactionId: transactionId };
+      const paymentExist = await paymentCollection.findOne(query);
+      if (paymentExist) {
+        return res.send({
+          message: "Already exist",
+          transactionId,
+          trackingId: paymentExist.trackingId,
+        });
+      }
 
       const trackingId = generateTrakingId();
       if (session.payment_status === "paid") {
@@ -163,6 +174,7 @@ async function run() {
           transactionId: session.payment_intent,
           paymentStatus: session.payment_status,
           paidAt: new Date(),
+          trackingId: trackingId,
         };
 
         if (session.payment_status === "paid") {
@@ -177,6 +189,18 @@ async function run() {
         }
       }
       res.send({ succes: false });
+    });
+
+    // payment related api
+    app.get("/peyment", async (req, res) => {
+      const email = req.query.email;
+      const query = {};
+      if (email) {
+        query.customerEmail = email;
+      }
+      const cursor = paymentCollection.find(query);
+      const result = await cursor.toArray();
+      res.send(result);
     });
 
     // Send a ping to confirm a successful connection
