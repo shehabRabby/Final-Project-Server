@@ -25,12 +25,21 @@ function generateTrakingId() {
 app.use(express.json());
 app.use(cors());
 
-const verifyFBToken = (req, res, next) => {
+const verifyFBToken = async (req, res, next) => {
   const token = req.headers.authorization;
   if (!token) {
     return res.status(401).send({ message: "unAuthorized Access" });
   }
-  next();
+
+  try {
+    const idToken = token.split(" ")[1];
+    const decode = await admin.auth().verifyIdToken(idToken);
+    console.log("Decoded in the token", decode);
+    req.decoded_email = decode.email;
+    next();
+  } catch (err) {
+    return res.status(401).send({ message: "unAuthorized Access" });
+  }
 };
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.zyoungn.mongodb.net/?appName=Cluster0`;
@@ -214,6 +223,11 @@ async function run() {
 
       if (email) {
         query.customer_email = email;
+
+        //chechk email address
+        if (email !== req.decoded_email) {
+          return res.status(403).send({ message: "forbidden access" });
+        }
       }
       const cursor = paymentCollection.find(query);
       const result = await cursor.toArray();
