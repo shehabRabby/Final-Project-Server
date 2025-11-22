@@ -192,17 +192,19 @@ async function run() {
     });
 
     // payment related api
-    app.get("/peyment", async (req, res) => {
+    app.get("/payments", async (req, res) => {
       const email = req.query.email;
       const query = {};
       if (email) {
-        query.customerEmail = email;
+        query.customer_email = email;
       }
       const cursor = paymentCollection.find(query);
       const result = await cursor.toArray();
       res.send(result);
     });
 
+
+    
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
