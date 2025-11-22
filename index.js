@@ -9,6 +9,7 @@ const port = process.env.PORT || 3000;
 const crypto = require("crypto");
 const admin = require("firebase-admin");
 const serviceAccount = require("./verifycationKey.json");
+const { use } = require("react");
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
@@ -59,7 +60,18 @@ async function run() {
     // collections here
     const db = client.db("zap_shift_db");
     const parcelsCollection = db.collection("parcels");
+    const userCollection = db.collection("users");
     const paymentCollection = db.collection("payments");
+
+    //user related api
+    app.post("/users", async (req, res) => {
+      const user = req.body;
+      user.role = "user";
+      user.createAt = new Date();
+
+      const result = await userCollection.insertOne(user);
+      res.send(result);
+    });
 
     //parcel api
     app.get("/parcels", async (req, res) => {
@@ -229,7 +241,7 @@ async function run() {
           return res.status(403).send({ message: "forbidden access" });
         }
       }
-      const cursor = paymentCollection.find(query);
+      const cursor = paymentCollection.find(query).sort({ paidAt: -1 });
       const result = await cursor.toArray();
       res.send(result);
     });
