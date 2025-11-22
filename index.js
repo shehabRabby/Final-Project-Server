@@ -7,6 +7,12 @@ const stripe = require("stripe")(process.env.STRIPE_SECRET);
 
 const port = process.env.PORT || 3000;
 const crypto = require("crypto");
+const admin = require("firebase-admin");
+const serviceAccount = require("./verifycationKey.json");
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+});
 
 function generateTrakingId() {
   const prefix = "PRCL";
@@ -18,6 +24,14 @@ function generateTrakingId() {
 // middleware
 app.use(express.json());
 app.use(cors());
+
+const verifyFBToken = (req, res, next) => {
+  const token = req.headers.authorization;
+  if (!token) {
+    return res.status(401).send({ message: "unAuthorized Access" });
+  }
+  next();
+};
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.zyoungn.mongodb.net/?appName=Cluster0`;
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -192,9 +206,12 @@ async function run() {
     });
 
     // payment related api
-    app.get("/payments", async (req, res) => {
+    app.get("/payments", verifyFBToken, async (req, res) => {
       const email = req.query.email;
       const query = {};
+
+      // console.log("headers : ", req.headers);
+
       if (email) {
         query.customer_email = email;
       }
@@ -203,8 +220,6 @@ async function run() {
       res.send(result);
     });
 
-
-    
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
