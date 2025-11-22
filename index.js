@@ -62,12 +62,19 @@ async function run() {
     const parcelsCollection = db.collection("parcels");
     const userCollection = db.collection("users");
     const paymentCollection = db.collection("payments");
+    const riderCollection = db.collection("riders");
 
     //user related api
     app.post("/users", async (req, res) => {
       const user = req.body;
       user.role = "user";
       user.createAt = new Date();
+      const email = user.email;
+      const userExist = await userCollection.findOne({ email });
+
+      if (userExist) {
+        return res.send({ message: "user exists" });
+      }
 
       const result = await userCollection.insertOne(user);
       res.send(result);
@@ -243,6 +250,40 @@ async function run() {
       }
       const cursor = paymentCollection.find(query).sort({ paidAt: -1 });
       const result = await cursor.toArray();
+      res.send(result);
+    });
+
+    //riders
+    app.get("/riders", async (req, res) => {
+      const query = {};
+      if (req.query.status) {
+        query.status = req.query.status;
+      }
+      const cursor = riderCollection.find(query);
+      const result = await cursor.toArray();
+      res.send(result);
+    });
+
+    //riders related api
+    app.post("/riders", async (req, res) => {
+      const rider = req.body;
+      rider.status = "pending";
+      rider.createAt = new Date();
+      const result = await riderCollection.insertOne(rider);
+      res.send(result);
+    });
+
+    //patch riders
+    app.patch("/riders/:id", verifyFBToken, async (req, res) => {
+      const status = req.body.status;
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          status: status,
+        },
+      };
+      const result = await riderCollection.updateOne(query.updateDoc);
       res.send(result);
     });
 
