@@ -346,6 +346,7 @@ async function run() {
       const updateDoc = {
         $set: {
           status: status,
+          workStatus: "available",
         },
       };
       const result = await riderCollection.updateOne(query, updateDoc);
