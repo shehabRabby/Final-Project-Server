@@ -64,6 +64,12 @@ async function run() {
     const paymentCollection = db.collection("payments");
     const riderCollection = db.collection("riders");
 
+    //middle wire eith database access
+    const verifyAdmin = async (req, res, next) => {
+      const email = req.decoded_email;
+      next();
+    };
+
     //user related api
     app.get("/users", verifyFBToken, async (req, res) => {
       const cursor = userCollection.find();
@@ -72,7 +78,7 @@ async function run() {
     });
 
     app.get("users/:id", async (req, res) => {});
-    
+
     app.get("users/:email/role", async (req, res) => {
       const email = req.params.email;
       const query = { email };
@@ -95,18 +101,23 @@ async function run() {
       res.send(result);
     });
 
-    app.patch("/users/:id", async (req, res) => {
-      const id = req.params.id;
-      const roleInfo = req.body;
-      const query = { _id: new ObjectId(id) };
-      const updatedDoc = {
-        $set: {
-          role: roleInfo.role,
-        },
-      };
-      const result = await userCollection.updateOne(query, updatedDoc);
-      res.send(result);
-    });
+    app.patch(
+      "/users/:id/role",
+      verifyFBToken,
+      verifyAdmin,
+      async (req, res) => {
+        const id = req.params.id;
+        const roleInfo = req.body;
+        const query = { _id: new ObjectId(id) };
+        const updatedDoc = {
+          $set: {
+            role: roleInfo.role,
+          },
+        };
+        const result = await userCollection.updateOne(query, updatedDoc);
+        res.send(result);
+      }
+    );
 
     //parcel api
     app.get("/parcels", async (req, res) => {
