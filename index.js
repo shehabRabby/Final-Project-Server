@@ -64,22 +64,43 @@ async function run() {
     const paymentCollection = db.collection("payments");
     const riderCollection = db.collection("riders");
 
-    //middle wire eith database access
+    //middle wire before allwing admin activity with database access
+    //Must be use after verifyFBToken middleware
     const verifyAdmin = async (req, res, next) => {
       const email = req.decoded_email;
+      const query = { email };
+      const user = await userCollection.findOne(query);
+
+      if (!user || user.role !== "admin") {
+        return res.status(403).send({ message: "Forbidden Access" });
+      }
       next();
     };
 
     //user related api
     app.get("/users", verifyFBToken, async (req, res) => {
-      const cursor = userCollection.find();
+      const searchText = req.query.searchText;
+      const query = {};
+
+      if (searchText) {
+        // query.displayName = { $regex: searchText, $options: "i" };
+        query.$or = [
+          { displayName: { $regex: searchText, $options: "i" } },
+          { email: { $regex: searchText, $options: "i" } },
+        ];
+      }
+
+      const cursor = userCollection
+        .find(query)
+        .sort({ createdAt: -1 })
+        .limit(4);
       const result = await cursor.toArray();
       res.send(result);
     });
 
-    app.get("users/:id", async (req, res) => {});
+    app.get("/users/:id", async (req, res) => {});
 
-    app.get("users/:email/role", async (req, res) => {
+    app.get("/users/:email/role", async (req, res) => {
       const email = req.params.email;
       const query = { email };
       const user = await userCollection.findOne(query);
@@ -313,7 +334,7 @@ async function run() {
     });
 
     //patch riders
-    app.patch("/riders/:id", verifyFBToken, async (req, res) => {
+    app.patch("/riders/:id", verifyFBToken, verifyAdmin, async (req, res) => {
       const status = req.body.status;
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
