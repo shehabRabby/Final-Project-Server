@@ -168,7 +168,8 @@ async function run() {
         query.riderEmail = riderEmail;
       }
       if (deliveryStatus) {
-        query.deliveryStatus = { $in: ["driver_assigned", "Rider_arriving"] };
+        // query.deliveryStatus = { $in: ["driver_assigned", "Rider_arriving"] };
+        query.deliveryStatus = { $nin: ["parcel_devlivered"] };
       }
 
       const cursor = parcelsCollection.find(query);
