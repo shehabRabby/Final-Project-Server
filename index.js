@@ -64,6 +64,7 @@ async function run() {
     const userCollection = db.collection("users");
     const paymentCollection = db.collection("payments");
     const riderCollection = db.collection("riders");
+    const trackingsCollection = db.collection("trackings");
 
     //middle wire before allwing admin activity with database access
     //Must be use after verifyFBToken middleware
@@ -76,6 +77,17 @@ async function run() {
         return res.status(403).send({ message: "Forbidden Access" });
       }
       next();
+    };
+
+    const logTracking = async (trackingId, status) => {
+      const log = {
+        trackingId,
+        status,
+        details: status.split("-").join(" "),
+        createdAt: new Date(),
+      };
+      const result = await trackingsCollection.insertOne(log);
+      return result;
     };
 
     //user related api
@@ -194,9 +206,9 @@ async function run() {
       res.send(result);
     });
 
-    //todo rename tobe specific /parcels/:id/assign
+    //TODO: rename tobe specific /parcels/:id/assign
     app.patch("/parcels/:id", async (req, res) => {
-      const { riderId, riderName, riderEmail } = req.body;
+      const { riderId, riderName, riderEmail, trackingId } = req.body;
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const updatedDoc = {
@@ -220,11 +232,15 @@ async function run() {
         riderQuery,
         riderUpdatedDoc
       );
+
+      //log tracking
+      logTracking(trackingId, "driver_assigned");
+
       res.send({ parcelResult: result, riderResult });
     });
 
     app.patch("/parcels/:id/status", async (req, res) => {
-      const { deliveryStatus, riderId } = req.body;
+      const { deliveryStatus, riderId, trackingId } = req.body;
       const query = { _id: new ObjectId(req.params.id) };
       const updatedDoc = {
         $set: {
@@ -247,6 +263,8 @@ async function run() {
       }
 
       const result = await parcelsCollection.updateOne(query, updatedDoc);
+      //log tracking
+      logTracking(trackingId, deliveryStatus);
       res.send(result);
     });
 
@@ -361,6 +379,9 @@ async function run() {
 
         if (session.payment_status === "paid") {
           const resultPayment = await paymentCollection.insertOne(payment);
+
+          logTracking(trackingId, "pending-pickup");
+
           res.send({
             seccess: true,
             modifyParcel: result,
