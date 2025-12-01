@@ -282,16 +282,16 @@ async function run() {
 
     //Payment related api
     app.post("/payment-checkout-session", async (req, res) => {
-      const paymentInfo = req.body;
-      const amount = parseInt(paymentInfo.cost) * 100;
+      const parcelInfo = req.body;
+      const amount = parseInt(parcelInfo.cost) * 100;
       const session = await stripe.checkout.sessions.create({
         line_items: [
           {
             price_data: {
-              currency: "USD",
+              currency: "usd",
               unit_amount: amount,
               product_data: {
-                name: `Please pay for ${paymentInfo.parcelName}`,
+                name: `Please pay for ${parcelInfo.parcelName}`,
               },
             },
             quantity: 1,
@@ -299,10 +299,10 @@ async function run() {
         ],
         mode: "payment",
         metadata: {
-          parcelId: paymentInfo.parcelId,
-          trackingId: paymentInfo.trackingId,
+          parcelId: parcelInfo.parcelId,
+          trackingId: parcelInfo.trackingId,
         },
-        customer_email: paymentInfo.senderEmail,
+        customer_email: parcelInfo.senderEmail,
         success_url: `${process.env.SITE_DOMAIN}/dashboard/payment-success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${process.env.SITE_DOMAIN}/dashboard/payment-cancelled`,
       });
