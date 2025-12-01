@@ -11,6 +11,7 @@ const admin = require("firebase-admin");
 const serviceAccount = require("./verifycationKey.json");
 const { use } = require("react");
 const { cursorTo } = require("readline");
+const { group } = require("console");
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
@@ -195,6 +196,19 @@ async function run() {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await parcelsCollection.findOne(query);
+      res.send(result);
+    });
+
+    app.get("/parcels/delivery-status/stats", async (req, res) => {
+      const pipeline = [
+        {
+          $group: {
+            _id: "$deliveryStatus",
+            count: { $sum: 1 },
+          },
+        },
+      ];
+      const result = await parcelsCollection.aggregate(pipeline).toArray();
       res.send(result);
     });
 
