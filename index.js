@@ -455,6 +455,7 @@ async function run() {
       res.send(result);
     });
 
+    //pipeline and aggregration
     app.get("/riders/delivery-per-day", async (req, res) => {
       const email = req.query.email;
       //aggregate on parcel
@@ -463,6 +464,38 @@ async function run() {
           $match: {
             riderEmail: email,
             deliveryStatus: "parcel_delivered",
+          },
+        },
+        {
+          $lookup: {
+            from: "trackings",
+            localField: "trackingId",
+            foreignField: "trackingId",
+            as: "parcel_trackings",
+          },
+        },
+        {
+          $unwind: "$parcel_trackings",
+        },
+        {
+          $match: {
+            "parcel_trackings.status": "parcel_delivered",
+          },
+        },
+        {
+          $addFields: {
+            day: {
+              $dateToString: {
+                format: "%Y-%m-%d",
+                date: "$parcel_trackings.createdAt",
+              },
+            },
+          },
+        },
+        {
+          $group: {
+            _id: "$day",
+            deleveredCount: { $sum: 1 },
           },
         },
       ];
